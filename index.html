@@ -121,6 +121,8 @@
     .novotes { color: var(--muted); font-size: 13px; text-align: center; padding: 2rem 0; }
     .refbtn { display: block; margin: 1rem auto 0; background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: var(--sans); font-size: 12px; padding: 6px 16px; cursor: pointer; }
     .refbtn:hover { color: var(--text); border-color: #555; }
+    .linkbtn { font-size: 11px; color: var(--gold); text-decoration: none; border: 1px solid rgba(212,160,23,0.3); border-radius: 6px; padding: 2px 7px; white-space: nowrap; opacity: 0.8; }
+    .linkbtn:hover { opacity: 1; background: var(--gold-dim); }
   </style>
 </head>
 <body>
@@ -163,6 +165,9 @@
 
     <div class="seclabel">Dinner</div>
     <div id="dinnercards"></div>
+
+    <div class="seclabel">Drinks</div>
+    <div id="drinkscards"></div>
 
     <div class="sugcard">
       <label>Other ideas?</label>
@@ -207,15 +212,18 @@ const PRESET_NIGHTS = {
 };
 
 const SHOWS = [
-  {id:'o',        name:'O by Cirque du Soleil', meta:'Bellagio',                               price:'~$200+/person',   type:'show'},
-  {id:'absinthe', name:'Absinthe',               meta:'Caesars Palace · Adults-only cabaret',   price:'~$340/person',    type:'show'},
-  {id:'empire',   name:'The Empire Strips Back', meta:'Rio · Star Wars burlesque parody',       price:'~$65–120/person', type:'show'},
-  {id:'xrocks',   name:'X Rocks',                meta:"Horseshoe · Rock 'n roll topless revue", price:'~$140/person',    type:'show'},
+  {id:'o',        name:'O by Cirque du Soleil', meta:'Bellagio',                               price:'~$200+/person',   type:'show',   link:'https://www.cirquedusoleil.com/o'},
+  {id:'absinthe', name:'Absinthe',               meta:'Caesars Palace · Adults-only cabaret',   price:'~$340/person',    type:'show',   link:'https://www.caesars.com/caesars-palace/shows/absinthe'},
+  {id:'empire',   name:'The Empire Strips Back', meta:'Rio · Star Wars burlesque parody',       price:'~$65–120/person', type:'show',   link:'https://www.riolasvegas.com/shows/the-empire-strips-back'},
+  {id:'xrocks',   name:'X Rocks',                meta:"Horseshoe · Rock 'n roll topless revue", price:'~$140/person',    type:'show',   link:'https://www.caesars.com/horseshoe-las-vegas/shows/x-rocks/'},
 ];
 const DINNERS = [
-  {id:'boa', name:'BOA Steakhouse', meta:'Forum Shops at Caesars · Upscale steakhouse', price:'', type:'dinner', badge:"Paul's pick"},
+  {id:'boa', name:'BOA Steakhouse', meta:'Grand Canal Shoppes at the Venetian · Upscale steakhouse', price:'', type:'dinner', badge:"Paul's pick", link:'https://www.boasteak.com/las-vegas-location/'},
 ];
-const ALL = [...SHOWS, ...DINNERS];
+const DRINKS = [
+  {id:'ghostbar', name:'Ghostbar', meta:'Palms Casino · Rooftop bar, 55th floor views', price:'', type:'drinks', link:'https://www.palms.com/dining/ghostbar'},
+];
+const ALL = [...SHOWS, ...DINNERS, ...DRINKS];
 
 let R = {};
 let selectedNights = new Set();
@@ -289,7 +297,10 @@ function buildCards(items, cid) {
     d.innerHTML = `
       <div class="itop">
         <div class="iname">${item.name}${item.badge ? `<span class="ibadge">${item.badge}</span>` : ''}</div>
-        <button class="skipbtn" id="sk${item.id}" onclick="doSkip('${item.id}')">skip</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener" class="linkbtn">info ↗</a>` : ''}
+          <button class="skipbtn" id="sk${item.id}" onclick="doSkip('${item.id}')">skip</button>
+        </div>
       </div>
       <div class="imeta">${item.meta}${item.price ? ` <span class="iprice">· ${item.price}</span>` : ''}</div>
       <div class="stars" id="st${item.id}">
@@ -385,6 +396,9 @@ async function doLoadResults() {
   h += '<div class="seclabel">Dinner</div>';
   DINNERS.forEach(item => { h += buildRcard(item, votes); });
 
+  h += '<div class="seclabel">Drinks</div>';
+  DRINKS.forEach(item => { h += buildRcard(item, votes); });
+
   if (sugs.length) {
     h += '<div class="seclabel">Suggestions</div>';
     sugs.forEach(s => { h += `<div class="sugrow"><div class="sugfrom">${s.name}</div><div class="sugtext">${s.text}</div></div>`; });
@@ -451,7 +465,11 @@ function buildRcard(item, votes) {
   }).join('');
   return `<div class="rcard">
     <div class="rtop">
-      <div class="rname">${item.name}${item.badge ? `<span class="ibadge">${item.badge}</span>` : ''}</div>
+      <div class="rname">
+        ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">${item.name}</a>` : item.name}
+        ${item.badge ? `<span class="ibadge">${item.badge}</span>` : ''}
+        ${item.link ? `<a href="${item.link}" target="_blank" rel="noopener" class="linkbtn" style="margin-left:6px;font-size:10px">↗</a>` : ''}
+      </div>
       <div class="ravg ${d ? 'd' : ''}">${a ? '★ ' + a.toFixed(1) : '—'}</div>
     </div>
     <div class="barbg"><div class="barfill ${d ? 'bdinner' : 'bshow'}" style="width:${a ? Math.round(a / 5 * 100) : 0}%"></div></div>
@@ -473,6 +491,7 @@ function refreshPills(votes) {
 buildNightsGrid();
 buildCards(SHOWS, 'showcards');
 buildCards(DINNERS, 'dinnercards');
+buildCards(DRINKS, 'drinkscards');
 (async () => { const r = await binGet(); if (r) refreshPills(r.votes || []); })();
 </script>
 </body>
