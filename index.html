@@ -227,22 +227,35 @@ const ALL = [...SHOWS, ...DINNERS, ...DRINKS];
 
 let R = {};
 let selectedNights = new Set();
+let cachedRecord = null;
 
 // ---- JSONBin API ----
-async function binGet() {
+function fetchWithTimeout(url, opts, ms = 10000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
+}
+
+async function binGet(bustCache = false) {
+  if (!bustCache && cachedRecord) return cachedRecord;
   try {
-    const res = await fetch(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
+    const res = await fetchWithTimeout(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    return data.record;
-  } catch(e) { return null; }
+    cachedRecord = data.record;
+    return cachedRecord;
+  } catch(e) { return cachedRecord; }
 }
 
 async function binSet(record) {
   try {
-    const res = await fetch(API_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(record) });
-    return res.ok;
-  } catch(e) { return false; }
+    const res = await fetchWithTimeout(API_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(record) });
+    if (!res.ok) throw new Error(res.status);
+    return true;
+  } catch(e) {
+    console.error('binSet error:', e);
+    return false;
+  }
 }
 
 // ---- tabs ----
@@ -345,7 +358,7 @@ async function doSubmit() {
   btn.disabled = true; btn.textContent = 'Saving…';
   st.innerHTML = '<span class="spin"></span> Saving your vote…'; st.className = 'status';
 
-  const record = await binGet() || { votes: [], suggestions: [] };
+  const record = cachedRecord ? JSON.parse(JSON.stringify(cachedRecord)) : (await binGet(true) || { votes: [], suggestions: [] });
 
   const entry = { name, ratings: {}, nights: [...selectedNights], ts: Date.now() };
   ALL.forEach(i => { entry.ratings[i.id] = R[i.id] !== undefined ? R[i.id] : null; });
@@ -359,6 +372,7 @@ async function doSubmit() {
   const ok = await binSet(record);
 
   if (ok) {
+    cachedRecord = record;
     st.innerHTML = '✓ Vote saved!'; st.className = 'status';
     refreshPills(record.votes);
     setTimeout(() => { document.querySelector('.tab:not(.on)').click(); }, 900);
