@@ -123,6 +123,12 @@
     .refbtn:hover { color: var(--text); border-color: #555; }
     .linkbtn { font-size: 11px; color: var(--gold); text-decoration: none; border: 1px solid rgba(212,160,23,0.3); border-radius: 6px; padding: 2px 7px; white-space: nowrap; opacity: 0.8; }
     .linkbtn:hover { opacity: 1; background: var(--gold-dim); }
+    .idate-row { margin-top: 10px; }
+    .idate-label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    .idate-pills { display: flex; flex-wrap: wrap; gap: 5px; }
+    .idpill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); cursor: pointer; user-select: none; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+    .idpill.on { border-color: rgba(212,160,23,0.5); color: var(--gold); background: var(--gold-dim); }
+    .vpref { font-size: 11px; color: var(--muted); font-style: italic; margin-left: 4px; }
   </style>
 </head>
 <body>
@@ -224,6 +230,7 @@ const DRINKS = [
 const ALL = [...SHOWS, ...DINNERS, ...DRINKS];
 
 let R = {};
+let itemDates = {}; // preferred nights per item
 let selectedNights = new Set();
 let cachedRecord = null;
 
@@ -298,6 +305,7 @@ function onNameChange() {
     selectedNights = new Set();
   }
   buildNightsGrid();
+  ALL.forEach(item => buildItemDates(item.id));
   document.getElementById('vname').style.borderColor = '';
 }
 
@@ -307,6 +315,7 @@ function buildCards(items, cid) {
   w.innerHTML = '';
   items.forEach(item => {
     if (R[item.id] === undefined) R[item.id] = null;
+    if (!itemDates[item.id]) itemDates[item.id] = new Set();
     const d = document.createElement('div');
     d.className = 'icard';
     d.id = 'c' + item.id;
@@ -321,10 +330,34 @@ function buildCards(items, cid) {
       <div class="imeta">${item.meta}${item.price ? ` <span class="iprice">· ${item.price}</span>` : ''}</div>
       <div class="stars" id="st${item.id}">
         ${[1,2,3,4,5].map(i => `<div class="star" data-v="${i}" onclick="doRate('${item.id}','${item.type}',${i})">☆</div>`).join('')}
-      </div>`;
+      </div>
+      <div class="idate-row" id="id${item.id}"></div>`;
     w.appendChild(d);
     if (R[item.id]) applyStars(item.id, item.type, R[item.id]);
+    buildItemDates(item.id);
   });
+}
+
+function buildItemDates(itemId) {
+  const row = document.getElementById('id' + itemId);
+  if (!row) return;
+  // Show only nights the person is available; fall back to all nights
+  const nights = selectedNights.size > 0
+    ? NIGHTS.filter(n => selectedNights.has(n.id))
+    : NIGHTS;
+  row.innerHTML = `<div class="idate-label">Preferred night</div><div class="idate-pills">${
+    nights.map(n => `<span class="idpill${itemDates[itemId].has(n.id) ? ' on' : ''}" onclick="toggleItemDate('${itemId}','${n.id}',this)">${n.dow} ${n.date.replace('Apr ','')}</span>`).join('')
+  }</div>`;
+}
+
+function toggleItemDate(itemId, nightId, el) {
+  if (itemDates[itemId].has(nightId)) {
+    itemDates[itemId].delete(nightId);
+    el.classList.remove('on');
+  } else {
+    itemDates[itemId].add(nightId);
+    el.classList.add('on');
+  }
 }
 
 function doRate(id, type, val) {
@@ -363,8 +396,11 @@ async function doSubmit() {
 
   const record = cachedRecord ? JSON.parse(JSON.stringify(cachedRecord)) : (await binGet(true) || { votes: [], suggestions: [] });
 
-  const entry = { name, ratings: {}, nights: [...selectedNights], ts: Date.now() };
-  ALL.forEach(i => { entry.ratings[i.id] = R[i.id] !== undefined ? R[i.id] : null; });
+  const entry = { name, ratings: {}, preferredNights: {}, nights: [...selectedNights], ts: Date.now() };
+  ALL.forEach(i => {
+    entry.ratings[i.id] = R[i.id] !== undefined ? R[i.id] : null;
+    entry.preferredNights[i.id] = itemDates[i.id] ? [...itemDates[i.id]] : [];
+  });
   record.votes = [...(record.votes || []).filter(v => v.name.toLowerCase() !== name.toLowerCase()), entry];
 
   const sugTxt = document.getElementById('sugtext').value.trim();
@@ -380,7 +416,7 @@ async function doSubmit() {
     refreshPills(record.votes);
     setTimeout(() => { document.querySelector('.tab:not(.on)').click(); }, 900);
   } else {
-    st.innerHTML = '✗ Save failed — check connection and try again.'; st.className = 'status err';
+    st.innerHTML = '✗ Save failed — try refreshing the page and submitting again.'; st.className = 'status err';
   }
   btn.disabled = false; btn.textContent = 'Submit my picks';
 }
@@ -478,7 +514,9 @@ function buildRcard(item, votes) {
       ? `<span class="${d ? 'vsdinner' : 'vsshow'}">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span>`
       : r === 0 ? `<span class="vskip">skip</span>`
       : `<span class="vskip">—</span>`;
-    return `<div class="vrow"><span class="vtag">${v.name}</span>${stars}</div>`;
+    const pref = (v.preferredNights || {})[item.id];
+    const prefStr = pref && pref.length ? `<span class="vpref">${pref.map(id => { const n = NIGHTS.find(x=>x.id===id); return n ? n.dow+' '+n.date.replace('Apr ','') : ''; }).join(', ')}</span>` : '';
+    return `<div class="vrow"><span class="vtag">${v.name}</span>${stars}${prefStr}</div>`;
   }).join('');
   return `<div class="rcard">
     <div class="rtop">
