@@ -46,6 +46,28 @@
     select { width: 100%; margin-top: 1.25rem; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--sans); font-size: 15px; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23777' d='M5 6 0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
     select:focus { border-color: var(--gold); }
 
+    /* NIGHTS */
+    .nights-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .nday { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 6px; text-align: center; cursor: pointer; transition: all 0.15s; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .nday:active { transform: scale(0.95); }
+    .nday.on { background: var(--gold-dim); border-color: rgba(212,160,23,0.5); }
+    .nday-dow { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
+    .nday.on .nday-dow { color: var(--gold); }
+    .nday-date { font-size: 14px; font-weight: 600; }
+    .nday.on .nday-date { color: var(--gold); }
+    .nights-hint { font-size: 11px; color: var(--muted); margin-top: 7px; }
+
+    /* AVAILABILITY GRID (results) */
+    .avail-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+    .avail-table th { font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 4px 6px; text-align: center; }
+    .avail-table td { padding: 5px 6px; text-align: center; }
+    .avail-table td:first-child { text-align: left; font-size: 12px; font-weight: 700; color: var(--muted); white-space: nowrap; }
+    .avail-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); }
+    .avail-dot.no { background: var(--surface2); border: 1px solid var(--border); }
+    .avail-count { font-size: 11px; font-weight: 700; color: var(--gold); }
+    .avail-count.best { font-size: 13px; color: #fff; background: var(--gold); border-radius: 6px; padding: 1px 6px; }
+    .avail-card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 10px; overflow-x: auto; }
+
     .icard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 10px; transition: border-color 0.2s; }
     .icard.rs { border-color: rgba(212,160,23,0.35); }
     .icard.rd { border-color: rgba(26,138,90,0.35); }
@@ -106,7 +128,7 @@
 <div class="hero">
   <span class="hero-icon">🎰</span>
   <h1>Vegas Trip Picker</h1>
-  <div class="hero-sub">Week of April 17, 2026 &nbsp;·&nbsp; The crew</div>
+  <div class="hero-sub">April 15–20, 2026 &nbsp;·&nbsp; The crew</div>
   <div class="crew-row">
     <span class="cpill" data-n="Bob">Bob</span>
     <span class="cpill" data-n="Fred">Fred</span>
@@ -126,11 +148,15 @@
 
   <!-- VOTE -->
   <div id="pv" class="panel on">
-    <select id="vname">
+    <select id="vname" onchange="onNameChange()">
       <option value="">— Select your name —</option>
       <option>Bob</option><option>Fred</option><option>Mark</option>
       <option>Paul</option><option>Ryan</option><option>Clayton</option><option>Matt</option>
     </select>
+
+    <div class="seclabel">Nights I'm There</div>
+    <div class="nights-grid" id="nightsgrid"></div>
+    <div class="nights-hint">Tap to toggle — pre-filled based on your known dates</div>
 
     <div class="seclabel">Shows</div>
     <div id="showcards"></div>
@@ -160,6 +186,26 @@ const MASTER_KEY = '$2a$10$Q1VC4BBLITcJpLdYRw54pugBuc.kGv.WNn6GL5Gxjb3oME1NYsoKK
 const API_URL    = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
 const HEADERS    = { 'X-Master-Key': MASTER_KEY, 'Content-Type': 'application/json' };
 
+const NIGHTS = [
+  { id: 'apr15', dow: 'Wed', date: 'Apr 15' },
+  { id: 'apr16', dow: 'Thu', date: 'Apr 16' },
+  { id: 'apr17', dow: 'Fri', date: 'Apr 17' },
+  { id: 'apr18', dow: 'Sat', date: 'Apr 18' },
+  { id: 'apr19', dow: 'Sun', date: 'Apr 19' },
+  { id: 'apr20', dow: 'Mon', date: 'Apr 20' },
+];
+
+// Pre-populated known dates (null = unknown, will default to none selected)
+const PRESET_NIGHTS = {
+  'Bob':     ['apr15','apr16','apr17','apr18','apr19','apr20'],
+  'Fred':    ['apr15','apr16','apr17','apr18','apr19','apr20'],
+  'Clayton': ['apr15','apr16','apr17','apr18','apr19','apr20'],
+  'Mark':    ['apr15','apr16','apr17','apr18','apr19'],
+  'Paul':    ['apr16','apr17','apr18','apr19'],
+  'Matt':    ['apr15','apr16','apr17'],
+  'Ryan':    [],
+};
+
 const SHOWS = [
   {id:'o',        name:'O by Cirque du Soleil', meta:'Bellagio',                               price:'~$200+/person',   type:'show'},
   {id:'absinthe', name:'Absinthe',               meta:'Caesars Palace · Adults-only cabaret',   price:'~$340/person',    type:'show'},
@@ -172,6 +218,7 @@ const DINNERS = [
 const ALL = [...SHOWS, ...DINNERS];
 
 let R = {};
+let selectedNights = new Set();
 
 // ---- JSONBin API ----
 async function binGet() {
@@ -185,11 +232,7 @@ async function binGet() {
 
 async function binSet(record) {
   try {
-    const res = await fetch(API_URL, {
-      method: 'PUT',
-      headers: HEADERS,
-      body: JSON.stringify(record)
-    });
+    const res = await fetch(API_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(record) });
     return res.ok;
   } catch(e) { return false; }
 }
@@ -201,6 +244,37 @@ function goTab(name, btn) {
   document.getElementById('pv').classList.toggle('on', name === 'vote');
   document.getElementById('pr').classList.toggle('on', name === 'results');
   if (name === 'results') doLoadResults();
+}
+
+// ---- nights ----
+function buildNightsGrid() {
+  const grid = document.getElementById('nightsgrid');
+  grid.innerHTML = '';
+  NIGHTS.forEach(n => {
+    const d = document.createElement('div');
+    d.className = 'nday' + (selectedNights.has(n.id) ? ' on' : '');
+    d.id = 'nd' + n.id;
+    d.innerHTML = `<div class="nday-dow">${n.dow}</div><div class="nday-date">${n.date}</div>`;
+    d.onclick = () => toggleNight(n.id);
+    grid.appendChild(d);
+  });
+}
+
+function toggleNight(id) {
+  selectedNights.has(id) ? selectedNights.delete(id) : selectedNights.add(id);
+  const el = document.getElementById('nd' + id);
+  if (el) el.classList.toggle('on', selectedNights.has(id));
+}
+
+function onNameChange() {
+  const name = document.getElementById('vname').value;
+  if (name && PRESET_NIGHTS[name] !== undefined) {
+    selectedNights = new Set(PRESET_NIGHTS[name]);
+  } else {
+    selectedNights = new Set();
+  }
+  buildNightsGrid();
+  document.getElementById('vname').style.borderColor = '';
 }
 
 // ---- build vote cards ----
@@ -262,7 +336,7 @@ async function doSubmit() {
 
   const record = await binGet() || { votes: [], suggestions: [] };
 
-  const entry = { name, ratings: {}, ts: Date.now() };
+  const entry = { name, ratings: {}, nights: [...selectedNights], ts: Date.now() };
   ALL.forEach(i => { entry.ratings[i.id] = R[i.id] !== undefined ? R[i.id] : null; });
   record.votes = [...(record.votes || []).filter(v => v.name.toLowerCase() !== name.toLowerCase()), entry];
 
@@ -299,6 +373,10 @@ async function doLoadResults() {
 
   let h = '';
 
+  // Availability grid
+  h += '<div class="seclabel">Who\'s There Each Night</div>';
+  h += buildAvailCard(votes);
+
   h += '<div class="seclabel">Shows</div>';
   [...SHOWS].sort((a, b) => (getAvg(votes, b.id) || 0) - (getAvg(votes, a.id) || 0)).forEach(item => {
     h += buildRcard(item, votes);
@@ -313,6 +391,51 @@ async function doLoadResults() {
   }
 
   w.innerHTML = h;
+}
+
+function buildAvailCard(votes) {
+  // Count per night
+  const counts = {};
+  NIGHTS.forEach(n => { counts[n.id] = []; });
+  votes.forEach(v => {
+    (v.nights || []).forEach(nid => { if (counts[nid]) counts[nid].push(v.name); });
+  });
+  const maxCount = Math.max(...NIGHTS.map(n => counts[n.id].length));
+
+  // Header row
+  let th = NIGHTS.map(n => `<th>${n.dow}<br><span style="font-weight:400;font-size:9px">${n.date}</span></th>`).join('');
+
+  // Count row
+  let countRow = NIGHTS.map(n => {
+    const c = counts[n.id].length;
+    const isBest = c === maxCount && c > 0;
+    return `<td><span class="avail-count${isBest ? ' best' : ''}">${c}</span></td>`;
+  }).join('');
+
+  // Per-person rows — use preset if no vote submitted yet
+  const allNames = ['Bob','Fred','Mark','Paul','Ryan','Clayton','Matt'];
+  let personRows = '';
+  allNames.forEach(name => {
+    const voted = votes.find(v => v.name.toLowerCase() === name.toLowerCase());
+    // Use voted nights if available, else fall back to preset
+    const nights = voted ? (voted.nights || []) : (PRESET_NIGHTS[name] || []);
+    const isPreset = !voted;
+    const dots = NIGHTS.map(n => {
+      const here = nights.includes(n.id);
+      return `<td><span class="avail-dot${here ? '' : ' no'}" title="${here ? name + ' is there' : name + ' not there'}"></span></td>`;
+    }).join('');
+    personRows += `<tr><td style="opacity:${isPreset ? 0.5 : 1}">${name}${isPreset ? '<span style="font-size:9px;color:#555"> est.</span>' : ''}</td>${dots}</tr>`;
+  });
+
+  return `<div class="avail-card">
+    <table class="avail-table">
+      <thead><tr><th></th>${th}</tr></thead>
+      <tbody>
+        <tr><td style="font-size:10px;color:var(--gold)">Going</td>${countRow}</tr>
+        ${personRows}
+      </tbody>
+    </table>
+  </div>`;
 }
 
 function buildRcard(item, votes) {
@@ -347,6 +470,7 @@ function refreshPills(votes) {
 }
 
 // ---- init ----
+buildNightsGrid();
 buildCards(SHOWS, 'showcards');
 buildCards(DINNERS, 'dinnercards');
 (async () => { const r = await binGet(); if (r) refreshPills(r.votes || []); })();
