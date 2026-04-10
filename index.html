@@ -186,10 +186,8 @@
 </div>
 
 <script>
-const BIN_ID     = '69d92d4faaba882197e575b7';
-const MASTER_KEY = '$2a$10$Q1VC4BBLITcJpLdYRw54pugBuc.kGv.WNn6GL5Gxjb3oME1NYsoKK';
-const API_URL    = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-const HEADERS    = { 'X-Master-Key': MASTER_KEY, 'Content-Type': 'application/json' };
+const FB_URL     = 'https://vegas-trip-5c3bb-default-rtdb.firebaseio.com/votes.json';
+const HEADERS    = { 'Content-Type': 'application/json' };
 
 const NIGHTS = [
   { id: 'apr15', dow: 'Wed', date: 'Apr 15' },
@@ -229,8 +227,8 @@ let R = {};
 let selectedNights = new Set();
 let cachedRecord = null;
 
-// ---- JSONBin API ----
-function fetchWithTimeout(url, opts, ms = 10000) {
+// ---- Firebase Realtime Database ----
+function fetchWithTimeout(url, opts, ms = 12000) {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), ms);
   return fetch(url, { ...opts, signal: ctrl.signal }).finally(() => clearTimeout(timer));
@@ -239,18 +237,23 @@ function fetchWithTimeout(url, opts, ms = 10000) {
 async function binGet(bustCache = false) {
   if (!bustCache && cachedRecord) return cachedRecord;
   try {
-    const res = await fetchWithTimeout(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
+    const res = await fetchWithTimeout(FB_URL);
     if (!res.ok) throw new Error(res.status);
     const data = await res.json();
-    cachedRecord = data.record;
+    cachedRecord = data || { votes: [], suggestions: [] };
     return cachedRecord;
-  } catch(e) { return cachedRecord; }
+  } catch(e) { console.error('binGet error:', e); return cachedRecord || { votes: [], suggestions: [] }; }
 }
 
 async function binSet(record) {
   try {
-    const res = await fetchWithTimeout(API_URL, { method: 'PUT', headers: HEADERS, body: JSON.stringify(record) });
-    if (!res.ok) throw new Error(res.status);
+    const res = await fetchWithTimeout(FB_URL, {
+      method: 'PUT',
+      headers: HEADERS,
+      body: JSON.stringify(record)
+    });
+    if (!res.ok) throw new Error(await res.text());
+    cachedRecord = record;
     return true;
   } catch(e) {
     console.error('binSet error:', e);
