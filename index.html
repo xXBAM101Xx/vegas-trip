@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vegas Trip 🎰</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --gold: #D4A017;
+      --gold-dim: rgba(212,160,23,0.12);
+      --green: #1A8A5A;
+      --green-dim: rgba(26,138,90,0.12);
+      --red: #C0392B;
+      --bg: #0C0C0C;
+      --surface: #181818;
+      --surface2: #222;
+      --border: #2A2A2A;
+      --text: #F0EDE6;
+      --muted: #777;
+      --serif: 'DM Serif Display', Georgia, serif;
+      --sans: 'DM Sans', system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 4rem; }
+
+    .hero { background: var(--surface); border-bottom: 1px solid var(--border); padding: 2rem 1.5rem 1.25rem; text-align: center; }
+    .hero-icon { font-size: 40px; margin-bottom: 6px; display: block; }
+    .hero h1 { font-family: var(--serif); font-size: 30px; color: var(--gold); margin-bottom: 4px; }
+    .hero-sub { font-size: 13px; color: var(--muted); margin-bottom: 12px; }
+    .crew-row { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+    .cpill { font-size: 11px; font-weight: 700; padding: 3px 11px; border-radius: 20px; border: 1px solid var(--border); color: var(--muted); letter-spacing: 0.04em; transition: all 0.2s; }
+    .cpill.voted { border-color: var(--gold); color: var(--gold); background: var(--gold-dim); }
+
+    .wrap { max-width: 500px; margin: 0 auto; padding: 0 1rem; }
+
+    .tabs { display: flex; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin: 1.25rem 0 0; overflow: hidden; }
+    .tab { flex: 1; padding: 10px; background: none; border: none; color: var(--muted); font-family: var(--sans); font-size: 13px; font-weight: 700; cursor: pointer; letter-spacing: 0.02em; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+    .tab.on { background: var(--gold); color: #0C0C0C; }
+    .panel { display: none; }
+    .panel.on { display: block; }
+
+    .seclabel { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); margin: 1.5rem 0 0.7rem; display: flex; align-items: center; gap: 8px; }
+    .seclabel::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    select { width: 100%; margin-top: 1.25rem; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--sans); font-size: 15px; outline: none; cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%23777' d='M5 6 0 0h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+    select:focus { border-color: var(--gold); }
+
+    .icard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 10px; transition: border-color 0.2s; }
+    .icard.rs { border-color: rgba(212,160,23,0.35); }
+    .icard.rd { border-color: rgba(26,138,90,0.35); }
+    .itop { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 3px; }
+    .iname { font-size: 15px; font-weight: 600; line-height: 1.3; }
+    .ibadge { font-size: 10px; font-weight: 700; background: rgba(26,138,90,0.15); color: #4CD99A; border: 1px solid rgba(26,138,90,0.3); border-radius: 20px; padding: 2px 8px; margin-left: 8px; white-space: nowrap; vertical-align: middle; }
+    .imeta { font-size: 12px; color: var(--muted); margin-bottom: 11px; line-height: 1.5; }
+    .iprice { color: var(--gold); font-weight: 500; }
+
+    .stars { display: flex; gap: 4px; }
+    .star { flex: 1; height: 34px; border-radius: 8px; border: 1px solid var(--border); background: var(--surface2); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 17px; color: var(--muted); transition: all 0.1s; user-select: none; -webkit-tap-highlight-color: transparent; }
+    .star:active { transform: scale(0.85); }
+    .star.gs { background: var(--gold-dim); border-color: rgba(212,160,23,0.4); color: var(--gold); }
+    .star.gd { background: var(--green-dim); border-color: rgba(26,138,90,0.4); color: #4CD99A; }
+
+    .skipbtn { font-size: 11px; color: var(--muted); background: none; border: none; cursor: pointer; padding: 4px 4px; white-space: nowrap; -webkit-tap-highlight-color: transparent; }
+    .skipbtn.sk { color: var(--red); }
+
+    .sugcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; margin-top: 1.25rem; }
+    .sugcard label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .sugcard textarea { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; color: var(--text); font-family: var(--sans); font-size: 14px; resize: vertical; min-height: 64px; outline: none; }
+    .sugcard textarea:focus { border-color: var(--gold); }
+
+    .subbtn { width: 100%; margin-top: 1.25rem; padding: 15px; border: none; border-radius: 12px; background: var(--gold); color: #0C0C0C; font-family: var(--sans); font-size: 15px; font-weight: 700; cursor: pointer; letter-spacing: 0.02em; transition: all 0.15s; -webkit-tap-highlight-color: transparent; }
+    .subbtn:hover { background: #E8B520; }
+    .subbtn:active { transform: scale(0.98); }
+    .subbtn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .status { text-align: center; font-size: 13px; color: var(--muted); padding: 0.75rem 0; min-height: 36px; }
+    .status.err { color: var(--red); }
+    .spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 5px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .rcard { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 10px; }
+    .rtop { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .rname { font-size: 15px; font-weight: 600; }
+    .ravg { font-family: var(--serif); font-size: 20px; color: var(--gold); }
+    .ravg.d { color: #4CD99A; }
+    .barbg { background: var(--surface2); border-radius: 6px; height: 6px; overflow: hidden; margin-bottom: 12px; }
+    .barfill { height: 100%; border-radius: 6px; transition: width 0.5s ease; }
+    .bshow { background: var(--gold); }
+    .bdinner { background: var(--green); }
+    .vrow { display: flex; align-items: center; gap: 7px; margin-top: 5px; }
+    .vtag { font-size: 11px; font-weight: 700; background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 2px 10px; color: var(--muted); min-width: 62px; text-align: center; }
+    .vsshow { color: var(--gold); font-size: 13px; letter-spacing: 1px; }
+    .vsdinner { color: #4CD99A; font-size: 13px; letter-spacing: 1px; }
+    .vskip { font-size: 12px; color: #444; font-style: italic; }
+    .sugrow { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-bottom: 8px; }
+    .sugfrom { font-size: 10px; font-weight: 700; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 3px; }
+    .sugtext { font-size: 13px; }
+    .novotes { color: var(--muted); font-size: 13px; text-align: center; padding: 2rem 0; }
+    .refbtn { display: block; margin: 1rem auto 0; background: none; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); font-family: var(--sans); font-size: 12px; padding: 6px 16px; cursor: pointer; }
+    .refbtn:hover { color: var(--text); border-color: #555; }
+  </style>
+</head>
+<body>
+
+<div class="hero">
+  <span class="hero-icon">🎰</span>
+  <h1>Vegas Trip Picker</h1>
+  <div class="hero-sub">Week of April 17, 2026 &nbsp;·&nbsp; The crew</div>
+  <div class="crew-row">
+    <span class="cpill" data-n="Bob">Bob</span>
+    <span class="cpill" data-n="Fred">Fred</span>
+    <span class="cpill" data-n="Mark">Mark</span>
+    <span class="cpill" data-n="Paul">Paul</span>
+    <span class="cpill" data-n="Ryan">Ryan</span>
+    <span class="cpill" data-n="Clayton">Clayton</span>
+    <span class="cpill" data-n="Matt">Matt</span>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tabs">
+    <button class="tab on" onclick="goTab('vote',this)">My Vote</button>
+    <button class="tab" onclick="goTab('results',this)">Results</button>
+  </div>
+
+  <!-- VOTE -->
+  <div id="pv" class="panel on">
+    <select id="vname">
+      <option value="">— Select your name —</option>
+      <option>Bob</option><option>Fred</option><option>Mark</option>
+      <option>Paul</option><option>Ryan</option><option>Clayton</option><option>Matt</option>
+    </select>
+
+    <div class="seclabel">Shows</div>
+    <div id="showcards"></div>
+
+    <div class="seclabel">Dinner</div>
+    <div id="dinnercards"></div>
+
+    <div class="sugcard">
+      <label>Other ideas?</label>
+      <textarea id="sugtext" placeholder="Another show, dinner spot, activity…"></textarea>
+    </div>
+
+    <button class="subbtn" id="subbtn" onclick="doSubmit()">Submit my picks</button>
+    <div id="vstatus" class="status"></div>
+  </div>
+
+  <!-- RESULTS -->
+  <div id="pr" class="panel">
+    <div id="rcontent"><div class="status"><span class="spin"></span>Loading…</div></div>
+    <button class="refbtn" onclick="doLoadResults()">↻ Refresh</button>
+  </div>
+</div>
+
+<script>
+const BIN_ID     = '69d92d4faaba882197e575b7';
+const MASTER_KEY = '$2a$10$Q1VC4BBLITcJpLdYRw54pugBuc.kGv.WNn6GL5Gxjb3oME1NYsoKK';
+const API_URL    = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
+const HEADERS    = { 'X-Master-Key': MASTER_KEY, 'Content-Type': 'application/json' };
+
+const SHOWS = [
+  {id:'o',        name:'O by Cirque du Soleil', meta:'Bellagio',                               price:'~$200+/person',   type:'show'},
+  {id:'absinthe', name:'Absinthe',               meta:'Caesars Palace · Adults-only cabaret',   price:'~$340/person',    type:'show'},
+  {id:'empire',   name:'The Empire Strips Back', meta:'Rio · Star Wars burlesque parody',       price:'~$65–120/person', type:'show'},
+  {id:'xrocks',   name:'X Rocks',                meta:"Horseshoe · Rock 'n roll topless revue", price:'~$140/person',    type:'show'},
+];
+const DINNERS = [
+  {id:'boa', name:'BOA Steakhouse', meta:'Forum Shops at Caesars · Upscale steakhouse', price:'', type:'dinner', badge:"Paul's pick"},
+];
+const ALL = [...SHOWS, ...DINNERS];
+
+let R = {};
+
+// ---- JSONBin API ----
+async function binGet() {
+  try {
+    const res = await fetch(API_URL, { headers: { 'X-Master-Key': MASTER_KEY } });
+    if (!res.ok) throw new Error(res.status);
+    const data = await res.json();
+    return data.record;
+  } catch(e) { return null; }
+}
+
+async function binSet(record) {
+  try {
+    const res = await fetch(API_URL, {
+      method: 'PUT',
+      headers: HEADERS,
+      body: JSON.stringify(record)
+    });
+    return res.ok;
+  } catch(e) { return false; }
+}
+
+// ---- tabs ----
+function goTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  document.getElementById('pv').classList.toggle('on', name === 'vote');
+  document.getElementById('pr').classList.toggle('on', name === 'results');
+  if (name === 'results') doLoadResults();
+}
+
+// ---- build vote cards ----
+function buildCards(items, cid) {
+  const w = document.getElementById(cid);
+  w.innerHTML = '';
+  items.forEach(item => {
+    if (R[item.id] === undefined) R[item.id] = null;
+    const d = document.createElement('div');
+    d.className = 'icard';
+    d.id = 'c' + item.id;
+    d.innerHTML = `
+      <div class="itop">
+        <div class="iname">${item.name}${item.badge ? `<span class="ibadge">${item.badge}</span>` : ''}</div>
+        <button class="skipbtn" id="sk${item.id}" onclick="doSkip('${item.id}')">skip</button>
+      </div>
+      <div class="imeta">${item.meta}${item.price ? ` <span class="iprice">· ${item.price}</span>` : ''}</div>
+      <div class="stars" id="st${item.id}">
+        ${[1,2,3,4,5].map(i => `<div class="star" data-v="${i}" onclick="doRate('${item.id}','${item.type}',${i})">☆</div>`).join('')}
+      </div>`;
+    w.appendChild(d);
+    if (R[item.id]) applyStars(item.id, item.type, R[item.id]);
+  });
+}
+
+function doRate(id, type, val) {
+  R[id] = val;
+  document.getElementById('c' + id).className = 'icard ' + (type === 'dinner' ? 'rd' : 'rs');
+  const sk = document.getElementById('sk' + id);
+  sk.textContent = 'skip'; sk.classList.remove('sk');
+  applyStars(id, type, val);
+}
+
+function applyStars(id, type, val) {
+  const cls = type === 'dinner' ? 'gd' : 'gs';
+  document.querySelectorAll(`#st${id} .star`).forEach(s => {
+    const v = parseInt(s.dataset.v), on = val > 0 && v <= val;
+    s.classList.toggle(cls, on); s.textContent = on ? '★' : '☆';
+  });
+}
+
+function doSkip(id) {
+  R[id] = 0;
+  document.getElementById('c' + id).className = 'icard';
+  const sk = document.getElementById('sk' + id);
+  sk.textContent = 'skipped ✕'; sk.classList.add('sk');
+  document.querySelectorAll(`#st${id} .star`).forEach(s => { s.classList.remove('gs','gd'); s.textContent = '☆'; });
+}
+
+// ---- submit ----
+async function doSubmit() {
+  const name = document.getElementById('vname').value;
+  if (!name) { document.getElementById('vname').style.borderColor = '#C0392B'; return; }
+
+  const btn = document.getElementById('subbtn');
+  const st  = document.getElementById('vstatus');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  st.innerHTML = '<span class="spin"></span> Saving your vote…'; st.className = 'status';
+
+  const record = await binGet() || { votes: [], suggestions: [] };
+
+  const entry = { name, ratings: {}, ts: Date.now() };
+  ALL.forEach(i => { entry.ratings[i.id] = R[i.id] !== undefined ? R[i.id] : null; });
+  record.votes = [...(record.votes || []).filter(v => v.name.toLowerCase() !== name.toLowerCase()), entry];
+
+  const sugTxt = document.getElementById('sugtext').value.trim();
+  if (sugTxt) {
+    record.suggestions = [...(record.suggestions || []).filter(s => s.name.toLowerCase() !== name.toLowerCase()), { name, text: sugTxt }];
+  }
+
+  const ok = await binSet(record);
+
+  if (ok) {
+    st.innerHTML = '✓ Vote saved!'; st.className = 'status';
+    refreshPills(record.votes);
+    setTimeout(() => { document.querySelector('.tab:not(.on)').click(); }, 900);
+  } else {
+    st.innerHTML = '✗ Save failed — check connection and try again.'; st.className = 'status err';
+  }
+  btn.disabled = false; btn.textContent = 'Submit my picks';
+}
+
+// ---- results ----
+async function doLoadResults() {
+  const w = document.getElementById('rcontent');
+  w.innerHTML = '<div class="status"><span class="spin"></span>Loading…</div>';
+
+  const record = await binGet();
+  if (!record) { w.innerHTML = '<div class="status err">Could not load results — try refreshing.</div>'; return; }
+
+  const votes = record.votes || [];
+  const sugs  = record.suggestions || [];
+  refreshPills(votes);
+
+  if (!votes.length) { w.innerHTML = '<p class="novotes">No votes yet — be the first!</p>'; return; }
+
+  let h = '';
+
+  h += '<div class="seclabel">Shows</div>';
+  [...SHOWS].sort((a, b) => (getAvg(votes, b.id) || 0) - (getAvg(votes, a.id) || 0)).forEach(item => {
+    h += buildRcard(item, votes);
+  });
+
+  h += '<div class="seclabel">Dinner</div>';
+  DINNERS.forEach(item => { h += buildRcard(item, votes); });
+
+  if (sugs.length) {
+    h += '<div class="seclabel">Suggestions</div>';
+    sugs.forEach(s => { h += `<div class="sugrow"><div class="sugfrom">${s.name}</div><div class="sugtext">${s.text}</div></div>`; });
+  }
+
+  w.innerHTML = h;
+}
+
+function buildRcard(item, votes) {
+  const a = getAvg(votes, item.id);
+  const d = item.type === 'dinner';
+  const rows = votes.map(v => {
+    const r = v.ratings[item.id];
+    const stars = r > 0
+      ? `<span class="${d ? 'vsdinner' : 'vsshow'}">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span>`
+      : r === 0 ? `<span class="vskip">skip</span>`
+      : `<span class="vskip">—</span>`;
+    return `<div class="vrow"><span class="vtag">${v.name}</span>${stars}</div>`;
+  }).join('');
+  return `<div class="rcard">
+    <div class="rtop">
+      <div class="rname">${item.name}${item.badge ? `<span class="ibadge">${item.badge}</span>` : ''}</div>
+      <div class="ravg ${d ? 'd' : ''}">${a ? '★ ' + a.toFixed(1) : '—'}</div>
+    </div>
+    <div class="barbg"><div class="barfill ${d ? 'bdinner' : 'bshow'}" style="width:${a ? Math.round(a / 5 * 100) : 0}%"></div></div>
+    ${rows}
+  </div>`;
+}
+
+function getAvg(votes, id) {
+  const v = votes.map(x => x.ratings[id]).filter(r => r && r > 0);
+  return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+}
+
+function refreshPills(votes) {
+  const names = votes.map(v => v.name.toLowerCase());
+  document.querySelectorAll('.cpill').forEach(p => p.classList.toggle('voted', names.includes(p.dataset.n.toLowerCase())));
+}
+
+// ---- init ----
+buildCards(SHOWS, 'showcards');
+buildCards(DINNERS, 'dinnercards');
+(async () => { const r = await binGet(); if (r) refreshPills(r.votes || []); })();
+</script>
+</body>
+</html>
