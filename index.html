@@ -542,7 +542,7 @@ function buildRcard(item, votes) {
 }
 
 function getAvg(votes, id) {
-  const v = votes.map(x => x.ratings[id]).filter(r => r && r > 0);
+  const v = votes.map(x => (x.ratings || {})[id]).filter(r => r && r > 0);
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
 }
 
