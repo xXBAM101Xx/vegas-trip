@@ -518,13 +518,13 @@ function buildRcard(item, votes) {
   const a = getAvg(votes, item.id);
   const d = item.type === 'dinner';
   const rows = votes.map(v => {
-    const r = v.ratings[item.id];
+    const r = (v.ratings || {})[item.id];
     const stars = r > 0
       ? `<span class="${d ? 'vsdinner' : 'vsshow'}">${'★'.repeat(r)}${'☆'.repeat(5 - r)}</span>`
       : r === 0 ? `<span class="vskip">skip</span>`
       : `<span class="vskip">—</span>`;
-    const pref = (v.preferredNights || {})[item.id];
-    const prefStr = pref && pref.length ? `<span class="vpref">${pref.map(id => { const n = NIGHTS.find(x=>x.id===id); return n ? n.dow+' '+n.date.replace('Apr ','') : ''; }).join(', ')}</span>` : '';
+    const pref = ((v.preferredNights || {})[item.id] || []);
+    const prefStr = pref.length ? `<span class="vpref">${pref.map(id => { const n = NIGHTS.find(x=>x.id===id); return n ? n.dow+' '+n.date.replace('Apr ','') : ''; }).filter(Boolean).join(', ')}</span>` : '';
     return `<div class="vrow"><span class="vtag">${v.name}</span>${stars}${prefStr}</div>`;
   }).join('');
   return `<div class="rcard">
