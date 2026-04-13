@@ -394,14 +394,16 @@ async function doSubmit() {
   btn.disabled = true; btn.textContent = 'Saving…';
   st.innerHTML = '<span class="spin"></span> Saving your vote…'; st.className = 'status';
 
-  const record = cachedRecord ? JSON.parse(JSON.stringify(cachedRecord)) : (await binGet(true) || { votes: [], suggestions: [] });
+  const raw = cachedRecord ? JSON.parse(JSON.stringify(cachedRecord)) : (await binGet(true) || { votes: [], suggestions: [] });
+  const toArr = v => !v ? [] : Array.isArray(v) ? v : Object.values(v);
+  const record = { votes: toArr(raw.votes), suggestions: toArr(raw.suggestions) };
 
   const entry = { name, ratings: {}, preferredNights: {}, nights: [...selectedNights], ts: Date.now() };
   ALL.forEach(i => {
     entry.ratings[i.id] = R[i.id] !== undefined ? R[i.id] : null;
     entry.preferredNights[i.id] = itemDates[i.id] ? [...itemDates[i.id]] : [];
   });
-  record.votes = [...(record.votes || []).filter(v => v.name.toLowerCase() !== name.toLowerCase()), entry];
+  record.votes = [...record.votes.filter(v => v.name.toLowerCase() !== name.toLowerCase()), entry];
 
   const sugTxt = document.getElementById('sugtext').value.trim();
   if (sugTxt) {
@@ -426,16 +428,19 @@ async function doLoadResults() {
   const w = document.getElementById('rcontent');
   w.innerHTML = '<div class="status"><span class="spin"></span>Loading…</div>';
 
-  const record = await binGet();
-  if (!record) { w.innerHTML = '<div class="status err">Could not load results — try refreshing.</div>'; return; }
+  try {
+    const record = await binGet();
+    if (!record) { w.innerHTML = '<p class="novotes">No votes yet — be the first!</p>'; return; }
 
-  const votes = record.votes || [];
-  const sugs  = record.suggestions || [];
-  refreshPills(votes);
+    // Firebase can return arrays as keyed objects — normalize both
+    const toArr = v => !v ? [] : Array.isArray(v) ? v : Object.values(v);
+    const votes = toArr(record.votes);
+    const sugs  = toArr(record.suggestions);
+    refreshPills(votes);
 
-  if (!votes.length) { w.innerHTML = '<p class="novotes">No votes yet — be the first!</p>'; return; }
+    if (!votes.length) { w.innerHTML = '<p class="novotes">No votes yet — be the first!</p>'; return; }
 
-  let h = '';
+    let h = '';
 
   // Availability grid
   h += '<div class="seclabel">Who\'s There Each Night</div>';
@@ -457,7 +462,11 @@ async function doLoadResults() {
     sugs.forEach(s => { h += `<div class="sugrow"><div class="sugfrom">${s.name}</div><div class="sugtext">${s.text}</div></div>`; });
   }
 
-  w.innerHTML = h;
+    w.innerHTML = h;
+  } catch(e) {
+    console.error('doLoadResults error:', e);
+    w.innerHTML = `<div class="status err">Error loading results: ${e.message}. Try refreshing.</div>`;
+  }
 }
 
 function buildAvailCard(votes) {
